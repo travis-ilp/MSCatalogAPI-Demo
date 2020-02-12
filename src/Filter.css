@@ -1,0 +1,8 @@
+.accordion-wrapper {
+    background-color: #c5c5c5;
+    border: 1px #555555 solid;
+}
+
+.accordion-item .accordion-head{
+    border: 1px #555555 solid;
+}
