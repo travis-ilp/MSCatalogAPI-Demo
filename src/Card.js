@@ -16,7 +16,8 @@ export class Card extends Component {
       learningPaths: {},
       levels: {},
       roles: {},
-      products: {}
+      products: {},
+      results: {}
     };
   }
 
@@ -33,7 +34,6 @@ export class Card extends Component {
           products: response.data.products
         });
 
-        // console.log(this.state);
         //this.renderSearch();
       })
       .catch(error => {
@@ -59,40 +59,69 @@ export class Card extends Component {
       return timeHour + "H " + (timeMin % 60) + "M";
     }
   };
+
   findProducts = product => {
     for (const obj of this.state.products) {
       if (obj.id === product || obj[0] === product) {
         return obj.name;
       }
 
-      const children = obj.children;
-      console.log("Child tree ", children);
-      for (const child of children) {
-        if (child.id === product) {
-          return child.name;
+      if (obj.children) {
+        const children = obj.children;
+        for (const child of children) {
+          if (child.id === product) {
+            return obj.name;
+          }
         }
       }
     }
-    console.warn("NOT RESOLVED");
+    console.warn("Product NOT RESOLVED");
     //return name;
+  };
+
+  findLevels = level => {
+    for (const obj of this.state.levels) {
+      if (obj.id === level || obj[0] === level) {
+        return obj.name;
+      }
+    }
+    console.warn("Level NOT RESOLVED");
+  };
+
+  findRoles = role => {
+    for (const obj of this.state.roles) {
+      if (obj.id === role || obj[0] === role) {
+        return obj.name;
+      }
+    }
+    console.warn("Role NOT RESOLVED");
+  };
+
+  functionName = arr => {
+    console.log(arr);
+    if (!this.state.learningPaths.length) {
+      this.getSearch();
+    }
+
+    this.setState({ learningPaths: [...arr] });
+    this.renderSearch("learningPaths");
   };
 
   renderSearch = type => {
     try {
-      //console.log(this.state.learningPaths);
-      let typeOfOption;
-
-      if (type === "learningPaths") {
-        typeOfOption = this.state.learningPaths.splice(0, 30);
-      } else if (type === "modules") {
-        typeOfOption = this.state.modules.splice(0, 30);
-      }
-      //taking only the first 10 for performance purposes
-      //console.log(modules);
+      let allLearning = [];
+      Array.prototype.push.apply(
+        allLearning,
+        this.state.learningPaths.slice(0, type)
+      );
+      Array.prototype.push.apply(
+        allLearning,
+        this.state.modules.slice(0, type)
+      );
 
       return (
         <div className="card-container">
-          {typeOfOption.map(result => {
+          {allLearning.map(result => {
             return (
               <DocumentCard className="card" label="basic card">
                 <DocumentCardTitle className="card-head" />
@@ -102,33 +131,37 @@ export class Card extends Component {
                     src={result.icon_url}
                     alt={`${result.title}`}
                   />
-                  <div>
-                    <div className={result.type}>
-                      {`${result.type}`.toUpperCase()}{" "}
-                    </div>
+                </div>
+
+                <div className="card-type">
+                  {`${result.type}`.toUpperCase()}{" "}
+                </div>
+
+                <div className="card-title-link">
+                  <a
+                    id="title-link"
+                    href={result.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <h5>{result.title}</h5>
+                  </a>
+                </div>
+                <div className="card-bottom">
+                  <div className="card-duration">
+                    {this.calculateTime(result.duration_in_minutes)}{" "}
                   </div>
-                  <span id="title-link">
-                    <a
-                      id="title-link"
-                      href={result.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <h5>{result.title}</h5>
-                    </a>
+                  <span>
+                    <div className="card-tags">
+                      {this.findProducts(result.products[0])}
+                    </div>
+                    <div className="card-tags">
+                      {this.findRoles(result.roles[0].id)}{" "}
+                    </div>
+                    <div className="card-tags">
+                      {this.findLevels(result.levels[0])}{" "}
+                    </div>
                   </span>
-                  <div className="card-bottom">
-                    <div className="card-duration">
-                      Duration: {this.calculateTime(result.duration_in_minutes)}{" "}
-                    </div>
-                    <span>
-                      <div className="card-tags">
-                        {this.findProducts(result.products[0])}
-                      </div>
-                      <div className="card-tags">{result.roles[0]} </div>
-                      <div className="card-tags">{result.levels[0]} </div>
-                    </span>
-                  </div>
                 </div>
               </DocumentCard>
             );
@@ -150,11 +183,12 @@ export class Card extends Component {
             roles={roles}
             products={products}
             learningPaths={learningPaths}
+            functionName={this.functionName}
           />
         </div>
         <div className="column-right">
-          {this.renderSearch("learningPaths")}
-          {this.renderSearch("modules")}
+          {this.renderSearch(100)}
+          {this.renderSearch(100)}
         </div>
       </div>
     );
