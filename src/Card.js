@@ -10,15 +10,21 @@ import Filter from "./Filter";
 export class Card extends Component {
   constructor(props) {
     super(props);
-    this.getSearch();
+
     this.state = {
       modules: {},
       learningPaths: {},
       levels: {},
       roles: {},
       products: {},
-      results: {}
+      filterResults: {},
+      filterTags: [],
+      type: [
+        { id: "learningPath", name: "Learning Path" },
+        { id: "module", name: "Module" }
+      ]
     };
+    this.getSearch();
   }
 
   getSearch = () => {
@@ -26,15 +32,18 @@ export class Card extends Component {
     axios
       .get(searchUrl)
       .then(response => {
-        this.setState({
-          modules: response.data.modules,
-          learningPaths: response.data.learningPaths,
-          levels: response.data.levels,
-          roles: response.data.roles,
-          products: response.data.products
-        });
-
-        //this.renderSearch();
+        this.setState(
+          {
+            modules: response.data.modules,
+            learningPaths: response.data.learningPaths,
+            levels: response.data.levels,
+            roles: response.data.roles,
+            products: response.data.products
+          },
+          () => {
+            this.setInitialFilter();
+          }
+        );
       })
       .catch(error => {
         if (axios.isCancel(error) || error) {
@@ -45,6 +54,16 @@ export class Card extends Component {
         }
       });
   };
+
+  setInitialFilter = () => {
+    let allLearning = [];
+    Array.prototype.push.apply(allLearning, this.state.learningPaths);
+    Array.prototype.push.apply(allLearning, this.state.modules);
+
+    this.setState({ filterResults: allLearning });
+  };
+
+  resetFilters = () => {};
 
   calculateTime = minutes => {
     const timeMin = parseInt(minutes);
@@ -60,121 +79,121 @@ export class Card extends Component {
     }
   };
 
-  findProducts = product => {
-    for (const obj of this.state.products) {
-      if (obj.id === product || obj[0] === product) {
+  filterSearch = (filteredCards, filterClass, filterItem) => {
+    let filterTag = [...this.state.filterTags];
+
+    filterTag.push([filterClass, filterItem]);
+
+    this.setState({ filterResults: filteredCards, filterTags: filterTag });
+  };
+
+  filterTagHandler = newFilterTags => {
+    this.setState({ filterTags: newFilterTags }, () => {
+      console.log(newFilterTags, this.state.filterTags);
+    });
+  };
+
+  findTag = (tagId, itemType) => {
+    for (const obj of this.state[itemType]) {
+      if (obj.id === tagId || obj[0] === tagId) {
         return obj.name;
       }
 
       if (obj.children) {
         const children = obj.children;
         for (const child of children) {
-          if (child.id === product) {
+          if (child.id === tagId) {
             return obj.name;
           }
         }
       }
     }
-    console.warn("Product NOT RESOLVED");
-    //return name;
+    console.warn(`${tagId} NOT RESOLVED`);
   };
 
-  findLevels = level => {
-    for (const obj of this.state.levels) {
-      if (obj.id === level || obj[0] === level) {
-        return obj.name;
-      }
-    }
-    console.warn("Level NOT RESOLVED");
-  };
-
-  findRoles = role => {
-    for (const obj of this.state.roles) {
-      if (obj.id === role || obj[0] === role) {
-        return obj.name;
-      }
-    }
-    console.warn("Role NOT RESOLVED");
-  };
-
-  functionName = arr => {
-    console.log(arr);
-    if (!this.state.learningPaths.length) {
-      this.getSearch();
-    }
-
-    this.setState({ learningPaths: [...arr] });
-    this.renderSearch("learningPaths");
-  };
-
-  renderSearch = type => {
+  renderSearch = restrictResults => {
     try {
-      let allLearning = [];
-      Array.prototype.push.apply(
-        allLearning,
-        this.state.learningPaths.slice(0, type)
-      );
-      Array.prototype.push.apply(
-        allLearning,
-        this.state.modules.slice(0, type)
-      );
+      let allLearning = this.state.filterResults;
 
+      if (allLearning.length === 0) {
+        return <div className="card-container">No results Found</div>;
+      }
       return (
-        <div className="card-container">
-          {allLearning.map(result => {
-            return (
-              <DocumentCard className="card" label="basic card">
-                <DocumentCardTitle className="card-head" />
-                <div className="image-wrapper">
-                  <img
-                    className="image"
-                    src={result.icon_url}
-                    alt={`${result.title}`}
-                  />
-                </div>
-
-                <div className="card-type">
-                  {`${result.type}`.toUpperCase()}{" "}
-                </div>
-
-                <div className="card-title-link">
-                  <a
-                    id="title-link"
-                    href={result.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <h5>{result.title}</h5>
-                  </a>
-                </div>
-                <div className="card-bottom">
-                  <div className="card-duration">
-                    {this.calculateTime(result.duration_in_minutes)}{" "}
+        <div>
+          <div>
+            <p className="card-results-count">{`${allLearning.length} items found`}</p>
+          </div>
+          <div className="card-container">
+            {allLearning.map(result => {
+              return (
+                <DocumentCard className="card" label="basic card">
+                  <DocumentCardTitle className="card-head" />
+                  <div className="image-wrapper">
+                    <img
+                      className="image"
+                      src={result.icon_url}
+                      alt={`${result.title}`}
+                    />
                   </div>
-                  <span>
-                    <div className="card-tags">
-                      {this.findProducts(result.products[0])}
+
+                  <div className="card-type">
+                    {`${result.type}`.toUpperCase()}{" "}
+                  </div>
+
+                  <div className="card-title-link">
+                    <a
+                      id="title-link"
+                      href={result.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <h5>{result.title}</h5>
+                    </a>
+                  </div>
+                  <div className="card-bottom">
+                    <div className="card-duration">
+                      {this.calculateTime(result.duration_in_minutes)}{" "}
                     </div>
-                    <div className="card-tags">
-                      {this.findRoles(result.roles[0].id)}{" "}
-                    </div>
-                    <div className="card-tags">
-                      {this.findLevels(result.levels[0])}{" "}
-                    </div>
-                  </span>
-                </div>
-              </DocumentCard>
-            );
-          })}
+                    <span>
+                      <div className="card-tags">
+                        {this.findTag(result.products[0], "products")}
+                      </div>
+                      <div className="card-tags">
+                        {this.findTag(result.roles[0], "roles")}{" "}
+                      </div>
+                      <div className="card-tags">
+                        {this.findTag(result.levels[0], "levels")}{" "}
+                      </div>
+                    </span>
+                  </div>
+                </DocumentCard>
+              );
+            })}
+          </div>
         </div>
       );
-    } catch {
-      return <div>loading {type}</div>;
+    } catch (error) {
+      // console.log(error);
+      return (
+        <div>
+          <p>Loading Page</p>
+        </div>
+      );
     }
   };
 
   render() {
-    const { levels, roles, products, learningPaths } = this.state;
+    const {
+      levels,
+      roles,
+      products,
+      filterResults,
+      filterTags,
+      learningPath,
+      modules,
+      type
+    } = this.state;
+
     return (
       <div className="row">
         <div className="column-left">
@@ -182,14 +201,18 @@ export class Card extends Component {
             levels={levels}
             roles={roles}
             products={products}
-            learningPaths={learningPaths}
-            functionName={this.functionName}
+            learningPath={learningPath}
+            modules={modules}
+            type={type}
+            filterResults={filterResults}
+            filterSearch={this.filterSearch}
+            setInitialFilter={this.setInitialFilter}
+            findTag={this.findTag}
+            filterTags={filterTags}
+            filterTagHandler={this.filterTagHandler}
           />
         </div>
-        <div className="column-right">
-          {this.renderSearch(100)}
-          {this.renderSearch(100)}
-        </div>
+        <div className="column-right">{this.renderSearch(0)}</div>
       </div>
     );
   }
