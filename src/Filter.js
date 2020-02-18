@@ -2,24 +2,31 @@ import React, { Component } from "react";
 import { Accordion, AccordionItem } from "react-sanfona";
 import { Checkbox } from "office-ui-fabric-react/lib/Checkbox";
 import "./Filter.css";
+import { TagItemSuggestion } from "office-ui-fabric-react";
 
 export class Filter extends Component {
   constructor(props) {
     super(props);
+    this.state = {
+      filterTags: []
+    };
   }
 
-  filterTagHandler = () => {
-    console.log(this.props.filterTags, "From filter");
+  filterTagHandler = newFilterTags => {
+    this.setState({ filterTags: newFilterTags }, () => {});
   };
 
   renderTags = () => {
     try {
-      if (!this.props.filterTags.length) {
+      if (!this.state.filterTags.length) {
         return;
+      } else if (!this.props.filterResults) {
+        return "Reset Filters";
       }
-      return this.props.filterTags.map(item => {
+
+      return this.state.filterTags.map((item, idx) => {
         return (
-          <div className="card-tags">
+          <div className="card-tags" id={`filter-tag-${item[1]}`}>
             {item[0].type} :{" "}
             {this.props.findTag(item[1], item[0].type.toLowerCase())}
             <button
@@ -38,41 +45,81 @@ export class Filter extends Component {
   };
 
   clearTag = tag => {
-    this.props.filterTags.map(old => {
+    this.state.filterTags.map(old => {
       if (old[1] === tag[1]) {
-        const newFilterTags = this.props.filterTags.filter(el => {
-          if (el[1] !== tag[1]) {
-            return el;
-          }
+        const newFilterTags = this.state.filterTags.filter(el => {
+          if (el[1] !== tag[1]) return el;
         });
 
         this.props.setInitialFilter();
+        //const checkBox = document.getElementById(`checkbox-${tag[1]}`);
 
-        newFilterTags.map(tag => {
-          this.checkboxHandler(tag[0].type, tag[1]);
+        this.setState({ filterTags: newFilterTags }, () => {
+          this.setState(this.props.setInitialFilter()),
+            () => {
+              this.refilterAfterClear();
+            };
+          this.renderTags();
         });
-        this.props.filterTagHandler(newFilterTags);
       }
     });
+  };
+
+  refilterAfterClear = () => {
+    try {
+      let filter = [];
+      console.log(this.state.filterTags.length);
+      if (this.state.filterTags.length) {
+        this.state.filterTags.map(tag => {
+          //  this.checkboxHandler(tag[0].type.toLowerCase(), tag[1]);
+
+          this.props.filterResults.map(item => {
+            if (tag[0].type.toLowerCase().includes(tag[1])) {
+              filter.push(item);
+            }
+          });
+        });
+        //this.props.filterSearch(filter);
+      } else {
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   checkboxHandler = (filterElTitle, filterEl) => {
     const filter = [];
     let tagObject = {};
-    console.log(filterElTitle);
+    tagObject = this.props[filterElTitle];
+    tagObject.type =
+      filterElTitle.charAt(0).toUpperCase() + filterElTitle.substring(1);
 
     this.props.filterResults.map(item => {
       if (item[filterElTitle].includes(filterEl)) {
         filter.push(item);
-        tagObject = this.props[filterElTitle];
-        tagObject.type =
-          filterElTitle.charAt(0).toUpperCase() + filterElTitle.substring(1);
-        console.log(tagObject.type);
       }
     });
 
-      this.props.filterSearch(filter, tagObject, filterEl);
+    let newFilterTags = this.state.filterTags;
 
+    let tagIsIn = false;
+
+    for (const obj of newFilterTags) {
+      if (obj[1] === filterEl) {
+        tagIsIn = true;
+        console.log("removing duplicate", tagIsIn, obj);
+        this.clearTag(obj);
+        break;
+      }
+    }
+
+    if (!tagIsIn) {
+      console.log("here");
+      newFilterTags.push([tagObject, filterEl]);
+      this.setState({ filterTags: newFilterTags });
+    }
+
+    this.props.filterSearch(filter);
   };
 
   render() {
@@ -83,7 +130,8 @@ export class Filter extends Component {
     try {
       return (
         <div className="filter-container">
-          {this.renderTags()}
+          <div id="filter-tags">{this.renderTags()}</div>
+
           <div className="accordion-wrapper">
             <div className="accordion-title">
               <p>Filter</p>
@@ -102,7 +150,9 @@ export class Filter extends Component {
                           <div className="accordion-item">
                             <Checkbox
                               label={`${item.name}`}
+                              id={`checkbox-${item.id}`}
                               className="list-item"
+                              aria-checked="false"
                               onChange={() => {
                                 this.checkboxHandler(el.toLowerCase(), item.id);
                               }}

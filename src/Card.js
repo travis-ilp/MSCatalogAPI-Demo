@@ -18,7 +18,6 @@ export class Card extends Component {
       roles: {},
       products: {},
       filterResults: {},
-      filterTags: [],
       type: [
         { id: "learningPath", name: "Learning Path" },
         { id: "module", name: "Module" }
@@ -29,6 +28,11 @@ export class Card extends Component {
 
   getSearch = () => {
     const searchUrl = `https://docs.microsoft.com/api/learn/catalog?locale=en-us&clientid=contoso`;
+
+    const config = {
+      headers: "Access-Control-Allow-Origin: *"
+    };
+
     axios
       .get(searchUrl)
       .then(response => {
@@ -57,10 +61,13 @@ export class Card extends Component {
 
   setInitialFilter = () => {
     let allLearning = [];
-    Array.prototype.push.apply(allLearning, this.state.learningPaths);
-    Array.prototype.push.apply(allLearning, this.state.modules);
+    Array.prototype.push.apply(
+      allLearning,
+      this.state.learningPaths //.splice(0, 50)
+    );
+    Array.prototype.push.apply(allLearning, this.state.modules); //.splice(0, 50));
 
-    this.setState({ filterResults: allLearning });
+    return this.setState({ filterResults: allLearning });
   };
 
   resetFilters = () => {};
@@ -79,18 +86,8 @@ export class Card extends Component {
     }
   };
 
-  filterSearch = (filteredCards, filterClass, filterItem) => {
-    let filterTag = [...this.state.filterTags];
-
-    filterTag.push([filterClass, filterItem]);
-
-    this.setState({ filterResults: filteredCards, filterTags: filterTag });
-  };
-
-  filterTagHandler = newFilterTags => {
-    this.setState({ filterTags: newFilterTags }, () => {
-      console.log(newFilterTags, this.state.filterTags);
-    });
+  filterSearch = filteredCards => {
+    this.setState({ filterResults: filteredCards });
   };
 
   findTag = (tagId, itemType) => {
@@ -131,7 +128,7 @@ export class Card extends Component {
                   <div className="image-wrapper">
                     <img
                       className="image"
-                      src={result.icon_url}
+                      //   src={result.icon_url}
                       alt={`${result.title}`}
                     />
                   </div>
@@ -173,7 +170,6 @@ export class Card extends Component {
         </div>
       );
     } catch (error) {
-      // console.log(error);
       return (
         <div>
           <p>Loading Page</p>
@@ -188,7 +184,6 @@ export class Card extends Component {
       roles,
       products,
       filterResults,
-      filterTags,
       learningPath,
       modules,
       type
@@ -208,8 +203,6 @@ export class Card extends Component {
             filterSearch={this.filterSearch}
             setInitialFilter={this.setInitialFilter}
             findTag={this.findTag}
-            filterTags={filterTags}
-            filterTagHandler={this.filterTagHandler}
           />
         </div>
         <div className="column-right">{this.renderSearch(0)}</div>
